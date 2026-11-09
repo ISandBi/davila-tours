@@ -6,7 +6,7 @@
   <a class="back-link" href="{{ url_for('client_dashboard') }}">{{ icon("arrow-left") }} Volver a mis reservas</a>
   <div class="detail-card">
     <div class="detail-header">
-      <div><span class="eyebrow">DETALLE DE RESERVA</span><h1>{{ reservation.folio }}</h1></div>
+      <div><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Dávila Tours" width="64" height="64"><span class="eyebrow">DETALLE DE RESERVA</span><h1>{{ reservation.folio }}</h1></div>
       {{ status_badge(reservation.status) }}
     </div>
     <div class="detail-grid">
