@@ -55,3 +55,5 @@ Se implementó la propuesta **A — Ruta confiable** del manual de color: azul p
 ## Documentación
 
 Consulta la [documentación técnica y guía de usuario](Docs/Documentacion_TK001_Davila_Tours.docx) para conocer los perfiles, flujos, configuración, modelo de datos, pruebas y limitaciones documentadas del sistema.
+
+Consulta también las [maquetas visuales del sistema](Docs/Maquetas_Davila_Tours.pdf), con las pantallas principales de pasajeros, choferes y administración.
