@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12304A">
+  <title>{% block title %}Dávila Tours{% endblock %} | Dávila Tours</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% from "_macros.html" import icon %}
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="Dávila Tours, inicio">
+        <img class="brand-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="" aria-hidden="true" width="64" height="64">
+        <span><strong>Dávila Tours</strong><small>Autotransportes y excursiones</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="{{ url_for('booking') }}">Viajes</a>
+        {% if current_user %}
+          {% if current_user.role == "cliente" %}
+            <a href="{{ url_for('client_dashboard') }}">Mis reservas</a>
+          {% elif current_user.role == "chofer" %}
+            <a href="{{ url_for('driver_dashboard') }}">Mi operación</a>
+          {% elif current_user.role == "administrador" %}
+            <a href="{{ url_for('admin_dashboard') }}">Administración</a>
+          {% endif %}
+          <a href="{{ url_for('profile') }}">Mi perfil</a>
+          <span class="nav-user">{{ current_user.full_name }}</span>
+          <a class="button button-small button-outline" href="{{ url_for('logout') }}">Cerrar sesión</a>
+        {% else %}
+          <a href="{{ url_for('login') }}">Iniciar sesión</a>
+          <a class="button button-small button-primary" href="{{ url_for('register') }}">Crear cuenta</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack" role="status" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              <span class="flash-icon">{{ icon("alert" if category == "error" else "check" if category == "success" else "info") }}</span>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span><strong>Dávila Tours</strong> · Viajes bien organizados, de principio a fin.</span>
+      <span>Atención: lunes a sábado · 9:00–18:00</span>
+    </div>
+  </footer>
+</body>
+</html>

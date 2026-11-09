@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, icon with context %}
+{% block title %}Mis reservas{% endblock %}
+{% block content %}
+<section class="section section-narrow dashboard">
+  <div class="page-heading compact-heading">
+    <span class="eyebrow">ÁREA DE PASAJEROS</span>
+    <h1>Hola, {{ current_user.full_name.split(' ')[0] }}</h1>
+    <p>Consulta el seguimiento de tus viajes y el estatus de cada apartado.</p>
+  </div>
+  <div class="section-heading">
+    <div><h2>Mis reservas</h2><p class="muted">Las reservas recientes aparecen primero.</p></div>
+    <a class="button button-primary" href="{{ url_for('booking') }}">{{ icon("plus") }} Reservar viaje</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Folio</th><th>Destino</th><th>Salida / regreso</th><th>Pasajeros</th><th>Asientos</th><th>Importe</th><th>Estatus</th><th></th></tr></thead>
+      <tbody>
+        {% for reservation in reservations %}
+          <tr>
+            <td><strong class="folio">{{ reservation.folio }}</strong></td>
+            <td>{{ reservation.destination }}</td>
+            <td>{{ reservation.departure_date }}<small class="table-subtext">Regreso {{ reservation.return_date }}</small></td>
+            <td>{{ reservation.passenger_count }}</td>
+            <td>{{ reservation.seats or "—" }}</td>
+            <td>{{ reservation.amount_cents|mxn }}</td>
+            <td>{{ status_badge(reservation.status) }}</td>
+            <td><a class="table-link" href="{{ url_for('reservation_detail', folio=reservation.folio) }}">Ver detalle {{ icon("arrow-right") }}</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="table-empty">Todavía no tienes reservas. Explora las próximas salidas para comenzar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

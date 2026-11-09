@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Centro de pruebas{% endblock %}
+{% block content %}
+<section class="section section-narrow dashboard test-hub">
+  <div class="page-heading compact-heading">
+    <span class="eyebrow">EQUIPO DE PRUEBAS</span>
+    <h1>Centro de pruebas</h1>
+    <p>Usa este punto de entrada para recorrer la aplicación. Los módulos disponibles siguen dependiendo de tu perfil y conservan sus controles de acceso.</p>
+  </div>
+  <div class="test-hub-grid">
+    <article class="test-hub-card">
+      <span class="eyebrow">MÓDULO PÚBLICO</span>
+      <h2>Viajes y reservaciones</h2>
+      <p>Consulta el calendario, revisa las salidas y prueba el flujo de selección de asientos.</p>
+      <a class="button button-primary" href="{{ url_for('booking') }}">Abrir viajes</a>
+    </article>
+    <article class="test-hub-card">
+      <span class="eyebrow">TU PERFIL</span>
+      <h2>Panel de {{ current_user.role }}</h2>
+      <p>Accede al panel correspondiente a tu cuenta. Las acciones administrativas y operativas requieren el perfil autorizado.</p>
+      <a class="button button-primary" href="{{ dashboard_url }}">Abrir mi panel</a>
+    </article>
+  </div>
+</section>
+{% endblock %}

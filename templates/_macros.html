@@ -1,0 +1,44 @@
+{% macro csrf_field() -%}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro icon(name) -%}
+  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    {% if name == "bus" %}
+      <path d="M8 6v6m8-6v6M4 12h16M5 18h14a1 1 0 0 0 1-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a1 1 0 0 0 1 1Z"/><path d="M7 18v2m10-2v2M7 15h.01M17 15h.01"/>
+    {% elif name == "map-pin" %}
+      <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>
+    {% elif name == "arrow-right" %}
+      <path d="M5 12h14m-7-7 7 7-7 7"/>
+    {% elif name == "arrow-left" %}
+      <path d="M19 12H5m7 7-7-7 7-7"/>
+    {% elif name == "plus" %}
+      <path d="M12 5v14m-7-7h14"/>
+    {% elif name == "check" %}
+      <path d="m5 12 4 4L19 6"/>
+    {% elif name == "clock" %}
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+    {% elif name == "close" %}
+      <path d="m6 6 12 12M18 6 6 18"/>
+    {% elif name == "alert" %}
+      <path d="M10.3 3.9 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/>
+    {% else %}
+      <circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>
+    {% endif %}
+  </svg>
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+  {% set state = reservation_states.get(status, ("Estatus desconocido", "info")) %}
+  <span class="status status-{{ status }}">{{ icon(state[1]) }} {{ state[0] }}</span>
+{%- endmacro %}
+
+{% macro trip_summary(trip, compact=false) -%}
+  <div class="trip-summary">
+    <span class="trip-destination">{{ trip.destination }}</span>
+    <span>{{ trip.departure_date }} — {{ trip.return_date }}</span>
+    {% if not compact %}
+      <span>{{ trip.reserved }} de {{ trip.capacity }} lugares ocupados</span>
+    {% endif %}
+  </div>
+{%- endmacro %}

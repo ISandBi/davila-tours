@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Crear cuenta{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-aside">
+    <span class="eyebrow eyebrow-light">VIAJA A TU MANERA</span>
+    <h1>Un buen viaje<br>empieza aquí.</h1>
+    <p>Crea tu cuenta para guardar tus datos, reservar lugares y consultar tu folio cuando lo necesites.</p>
+    <div class="auth-aside-note"><span>{{ icon("check") }}</span> Tus datos se usan para gestionar tus reservas</div>
+  </div>
+  <div class="auth-card">
+    <span class="eyebrow">REGISTRO DE PASAJERO</span>
+    <h2>Crear cuenta</h2>
+    <p class="muted">Completa tus datos para comenzar.</p>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+      <label for="full_name">Nombre completo</label>
+      <input id="full_name" name="full_name" maxlength="100" autocomplete="name" required>
+      <label for="email_local">Correo electrónico</label>
+      <div class="email-composition">
+        <input id="email_local" name="email_local" autocomplete="username" maxlength="64" placeholder="tu.usuario" required>
+        <span class="email-at" aria-hidden="true">{{ email_separator }}</span>
+        <select name="email_domain" aria-label="Dominio del correo" required>
+          {% for domain in email_domains %}<option value="{{ domain.id }}" {% if loop.first %}selected{% endif %}>{{ domain.domain }}</option>{% endfor %}
+        </select>
+      </div>
+      <label for="phone">Teléfono <span class="label-hint">opcional · 10 dígitos</span></label>
+      <input id="phone" name="phone" inputmode="numeric" autocomplete="tel" pattern="[0-9]{10}" maxlength="10" placeholder="5512345678">
+      <label for="password">Contraseña <span class="label-hint">mínimo 8 caracteres</span></label>
+      <input id="password" type="password" name="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+      <button class="button button-primary button-wide" type="submit">Crear cuenta</button>
+    </form>
+    <p class="auth-switch">¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión</a></p>
+  </div>
+</section>
+{% endblock %}

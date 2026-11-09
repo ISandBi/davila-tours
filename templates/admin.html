@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, csrf_field, icon with context %}
+{% block title %}Administración{% endblock %}
+{% block content %}
+<section class="section section-wide dashboard">
+  <div class="page-heading compact-heading">
+    <span class="eyebrow">CENTRO DE OPERACIONES</span>
+    <h1>Panel de administración</h1>
+    <p>Supervisa reservas, salidas programadas y disponibilidad de la flota.</p>
+  </div>
+  <div class="metric-grid">
+    <article class="metric-card"><span>Reservas registradas</span><strong>{{ totals.reservations }}</strong><small>Todos los estatus</small></article>
+    <article class="metric-card"><span>Por confirmar</span><strong>{{ totals.pending }}</strong><small>Reservas pendientes</small></article>
+    <article class="metric-card"><span>Pasajeros activos</span><strong>{{ totals.passengers }}</strong><small>Sin contar cancelaciones</small></article>
+    <article class="metric-card"><span>Unidades en flota</span><strong>{{ totals.buses }}</strong><small>Disponibles y en mantenimiento</small></article>
+  </div>
+
+  <section class="admin-section">
+    <div class="section-heading"><div><h2>Asignación de salidas</h2><p class="muted">Asigna una unidad y un chofer por viaje.</p></div></div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Salida</th><th>Destino</th><th>Capacidad</th><th>Unidad</th><th>Chofer</th><th>Guardar</th></tr></thead>
+        <tbody>
+          {% for trip in trips %}
+            <tr>
+              <td>
+                <form id="assign-{{ trip.id }}" method="post" action="{{ url_for('assign_trip', trip_id=trip.id) }}">
+                {{ csrf_field() }}
+                </form>
+                <strong>{{ trip.departure_date }}</strong><small class="table-subtext">Regreso {{ trip.return_date }}</small>
+              </td>
+              <td>{{ trip.destination }}</td>
+              <td>{{ trip.reserved }} / {{ trip.capacity }}</td>
+              <td><select form="assign-{{ trip.id }}" name="bus_id" aria-label="Unidad para {{ trip.destination }}"><option value="">Sin asignar</option>{% for bus in buses %}{% if bus.status == "Disponible" %}<option value="{{ bus.id }}" {% if trip.bus_id == bus.id %}selected{% endif %}>{{ bus.plate }} · {{ bus.capacity }} lugares</option>{% endif %}{% endfor %}</select></td>
+              <td><select form="assign-{{ trip.id }}" name="driver_user_id" aria-label="Chofer para {{ trip.destination }}"><option value="">Sin asignar</option>{% for driver in drivers %}<option value="{{ driver.id }}" {% if trip.driver_user_id == driver.id %}selected{% endif %}>{{ driver.full_name }}</option>{% endfor %}</select></td>
+              <td><button form="assign-{{ trip.id }}" class="button button-small button-outline" type="submit">Guardar</button></td>
+            </tr>
+          {% else %}<tr><td colspan="6" class="table-empty">No hay salidas próximas programadas.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-section">
+    <div class="section-heading"><div><h2>Reservas</h2><p class="muted">Filtra por destino o estatus y actualiza el seguimiento.</p></div></div>
+    <form method="get" class="filter-bar">
+      <label for="filter-destination">Destino</label>
+      <select id="filter-destination" name="destino"><option value="">Todos</option>{% for destination in destinations %}<option value="{{ destination }}" {% if destination_filter == destination %}selected{% endif %}>{{ destination }}</option>{% endfor %}</select>
+      <label for="filter-status">Estatus</label>
+      <select id="filter-status" name="estado"><option value="">Todos</option>{% for key, state in reservation_states.items() %}<option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ state[0] }}</option>{% endfor %}</select>
+      <button class="button button-small button-primary" type="submit">Aplicar filtros</button>
+      {% if status_filter or destination_filter %}<a class="button button-small button-outline" href="{{ url_for('admin_dashboard') }}">Limpiar</a>{% endif %}
+    </form>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Folio</th><th>Pasajero</th><th>Destino</th><th>Fecha</th><th>Importe</th><th>Estatus</th><th>Actualizar estatus</th></tr></thead>
+        <tbody>
+          {% for reservation in reservations %}
+            <tr>
+              <td><strong class="folio">{{ reservation.folio }}</strong></td>
+              <td>{{ reservation.passenger_name }}<small class="table-subtext">{{ reservation.email }}</small></td>
+              <td>{{ reservation.destination }}</td>
+              <td>{{ reservation.departure_date }}</td>
+              <td>{{ reservation.amount_cents|mxn }}</td>
+              <td>{{ status_badge(reservation.status) }}</td>
+              <td>
+                <form method="post" action="{{ url_for('update_reservation_status', reservation_id=reservation.id) }}" class="inline-form">
+                  {{ csrf_field() }}
+                  <select name="status" aria-label="Nuevo estatus para {{ reservation.folio }}">
+                    {% for key, state in reservation_states.items() %}
+                      {% if key in allowed_transitions[reservation.status] %}
+                        <option value="{{ key }}" {% if reservation.status == key %}selected{% endif %}>{{ state[0] }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                  <button class="button button-small button-outline" type="submit">Guardar</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}<tr><td colspan="7" class="table-empty">No hay reservas con estos filtros.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-section">
+    <div class="section-heading"><div><h2>Gestión de flota</h2><p class="muted">Control de placas, capacidad y estatus de mantenimiento.</p></div></div>
+    <div class="table-wrap">
+      <table class="fleet-table">
+        <thead><tr><th>Placas</th><th>Capacidad</th><th>Estatus</th><th>Guardar cambios</th></tr></thead>
+        <tbody>
+          {% for bus in buses %}
+            <tr>
+              <td><form id="fleet-{{ bus.id }}" method="post" action="{{ url_for('manage_fleet') }}">{{ csrf_field() }}<input type="hidden" name="action" value="update"><input type="hidden" name="bus_id" value="{{ bus.id }}"></form><input form="fleet-{{ bus.id }}" name="plate" aria-label="Placas" value="{{ bus.plate }}" maxlength="20" required></td>
+              <td><input form="fleet-{{ bus.id }}" name="capacity" aria-label="Capacidad" type="number" min="1" max="100" value="{{ bus.capacity }}" required></td>
+              <td><select form="fleet-{{ bus.id }}" name="status"><option {% if bus.status == "Disponible" %}selected{% endif %}>Disponible</option><option {% if bus.status == "Mantenimiento" %}selected{% endif %}>Mantenimiento</option></select></td>
+              <td><button form="fleet-{{ bus.id }}" class="button button-small button-outline" type="submit">Actualizar</button></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <details class="add-bus">
+      <summary>{{ icon("plus") }} Registrar otra unidad</summary>
+      <form method="post" action="{{ url_for('manage_fleet') }}" class="fleet-add-form">
+        {{ csrf_field() }}<input type="hidden" name="action" value="add">
+        <label>Placas<input name="plate" maxlength="20" required></label>
+        <label>Capacidad<input name="capacity" type="number" min="1" max="100" required></label>
+        <label>Estatus<select name="status"><option>Disponible</option><option>Mantenimiento</option></select></label>
+        <button class="button button-primary" type="submit">Agregar unidad</button>
+      </form>
+    </details>
+  </section>
+</section>
+{% endblock %}

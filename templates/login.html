@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-aside">
+    <span class="eyebrow eyebrow-light">BIENVENIDO DE NUEVO</span>
+    <h1>Todo tu viaje,<br>en un mismo lugar.</h1>
+    <p>Consulta tus reservas o accede a las herramientas de operación de Dávila Tours.</p>
+    <div class="auth-aside-note"><span>{{ icon("check") }}</span> Seguimiento claro de tu folio y estatus</div>
+  </div>
+  <div class="auth-card">
+    <span class="eyebrow">ACCESO A TU CUENTA</span>
+    <h2>Iniciar sesión</h2>
+    <p class="muted">Escribe tu correo y contraseña para continuar.</p>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+      <label for="email_local">Correo electrónico</label>
+      <div class="email-composition">
+        <input id="email_local" name="email_local" autocomplete="username" maxlength="64" placeholder="tu.usuario" required>
+        <span class="email-at" aria-hidden="true">{{ email_separator }}</span>
+        <select name="email_domain" aria-label="Dominio del correo" required>
+          {% for domain in email_domains %}<option value="{{ domain.id }}" {% if loop.first %}selected{% endif %}>{{ domain.domain }}</option>{% endfor %}
+        </select>
+      </div>
+      <label for="password">Contraseña</label>
+      <input id="password" type="password" name="password" autocomplete="current-password" required>
+      <button class="button button-primary button-wide" type="submit">Iniciar sesión</button>
+    </form>
+    <p class="auth-switch">¿Aún no tienes cuenta? <a href="{{ url_for('register') }}">Regístrate</a></p>
+  </div>
+</section>
+{% endblock %}

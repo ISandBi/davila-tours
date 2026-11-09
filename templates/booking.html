@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field, icon with context %}
+{% block title %}Reservar un viaje{% endblock %}
+{% block content %}
+{% macro seat_item(seat_number, selectable, occupied) -%}
+  {% if seat_number is none %}
+    <span class="seat-placeholder" aria-hidden="true"></span>
+  {% elif selectable %}
+    <label class="seat-option {% if seat_number in occupied %}is-occupied{% endif %}">
+      <input type="checkbox" name="seat_numbers" value="{{ seat_number }}" aria-label="Asiento {{ seat_number }}" {% if seat_number in occupied %}disabled{% endif %}>
+      <span class="seat-visual">
+        <span class="seat-back"></span>
+        <span class="seat-cushion"></span>
+        {% if seat_number in occupied %}
+          <span class="seat-person" aria-hidden="true"><i class="seat-person-head"></i><i class="seat-person-body"></i></span>
+        {% endif %}
+        <span class="seat-number">{{ seat_number }}</span>
+      </span>
+    </label>
+  {% else %}
+    <span class="seat-option {% if seat_number in occupied %}is-occupied{% endif %}" aria-label="Asiento {{ seat_number }}: {% if seat_number in occupied %}no disponible{% else %}disponible{% endif %}">
+      <span class="seat-visual">
+        <span class="seat-back"></span>
+        <span class="seat-cushion"></span>
+        {% if seat_number in occupied %}
+          <span class="seat-person" aria-hidden="true"><i class="seat-person-head"></i><i class="seat-person-body"></i></span>
+        {% endif %}
+        <span class="seat-number">{{ seat_number }}</span>
+      </span>
+    </span>
+  {% endif %}
+{%- endmacro %}
+{% set month_names = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] %}
+<section class="page-heading section-narrow">
+  <span class="eyebrow">RESERVACIONES</span>
+  <h1>Encuentra tu próxima salida</h1>
+  <p>Elige destino y fecha en el calendario. Todos los viajes son redondos: salida en jueves y regreso en domingo.</p>
+</section>
+<section class="section section-narrow booking-layout">
+  <div class="booking-list">
+    <form method="get" action="{{ url_for('booking') }}" class="destination-picker">
+      <label for="destination">Destino</label>
+      <select id="destination" name="destino">
+        <option value="">Todos los destinos</option>
+        {% for destination in destinations %}
+          <option value="{{ destination }}" {% if destination_filter == destination %}selected{% endif %}>{{ destination }}</option>
+        {% endfor %}
+      </select>
+      <button class="button button-primary" type="submit">Consultar fechas</button>
+    </form>
+
+    <section class="calendar-card" aria-label="Calendario de salidas">
+      <div class="calendar-heading">
+        <a class="calendar-nav" href="{{ url_for('booking', destino=destination_filter, mes=previous_month) }}" aria-label="Mes anterior">‹</a>
+        <h2>{{ month_names[month_start.month - 1] }} {{ month_start.year }}</h2>
+        <a class="calendar-nav" href="{{ url_for('booking', destino=destination_filter, mes=next_month) }}" aria-label="Mes siguiente">›</a>
+      </div>
+      <div class="calendar-grid" role="grid" aria-label="Fechas disponibles">
+        {% for weekday in ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] %}
+          <span class="calendar-weekday" role="columnheader">{{ weekday }}</span>
+        {% endfor %}
+        {% for week in calendar_weeks %}
+          {% for calendar_day in week %}
+            {% set trip = trips_by_date.get(calendar_day.isoformat()) %}
+            {% if calendar_day.month != month_start.month %}
+              <span class="calendar-day is-outside" aria-hidden="true">{{ calendar_day.day }}</span>
+            {% elif trip %}
+              {% set available = trip.capacity - trip.reserved %}
+              <a class="calendar-day has-departure {% if available <= 0 %}is-full{% endif %} {% if selected_trip and selected_trip.id == trip.id %}is-selected{% endif %}"
+                 href="{{ url_for('booking', destino=destination_filter, mes=month_start.strftime('%Y-%m'), salida=trip.departure_date) }}"
+                 aria-label="Salida a {{ trip.destination }} el jueves {{ calendar_day.day }}; {% if available > 0 %}{{ available }} lugares disponibles{% else %}sin lugares disponibles{% endif %}">
+                <span>{{ calendar_day.day }}</span><small>{% if available > 0 %}{{ available }} lugares{% else %}Completo{% endif %}</small>
+              </a>
+            {% else %}
+              <span class="calendar-day is-blocked" aria-label="{{ calendar_day.day }}, sin salida programada">{{ calendar_day.day }}</span>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="calendar-legend"><span class="legend-dot"></span> Salida disponible los jueves <span class="legend-blocked">Días sin salida no seleccionables</span></div>
+    </section>
+
+    {% if selected_trip %}
+      {% set available_seats = selected_trip.capacity - occupied_seats|length %}
+      {% set can_book = current_user and current_user.role == "cliente" and available_seats > 0 %}
+      <section class="seat-card" aria-labelledby="seat-heading">
+        <div class="seat-card-heading">
+          <div><span class="eyebrow">VIAJE REDONDO · JUEVES A DOMINGO</span>
+            <h2 id="seat-heading">{{ selected_trip.destination }}</h2>
+            <p>Salida {{ selected_trip.departure_date }} · Regreso {{ selected_trip.return_date }}</p>
+          </div>
+          <span class="seat-availability">{{ available_seats }} asientos disponibles</span>
+        </div>
+        {% if can_book %}
+          <form method="post" action="{{ url_for('create_reservation') }}" class="seat-booking-form" data-seat-form>
+            {{ csrf_field() }}
+            <input type="hidden" name="trip_id" value="{{ selected_trip.id }}">
+            <div class="seat-controls">
+              <label for="passenger-count">Pasajeros</label>
+              <select id="passenger-count" name="passenger_count" data-passenger-count>
+                {% for count in range(1, available_seats + 1) %}<option value="{{ count }}">{{ count }}</option>{% endfor %}
+              </select>
+              <p data-seat-message aria-live="polite">Selecciona 1 asiento para continuar.</p>
+            </div>
+        {% endif %}
+        <div class="seat-map {% if not can_book %}seat-map-readonly{% endif %}" aria-label="Mapa de asientos del autobús">
+          <div class="bus-front" aria-hidden="true">
+            <span class="bus-windshield">PARABRISAS</span>
+            <span class="bus-dashboard"><span class="bus-steering-wheel"></span><span>FRENTE DEL AUTOBÚS</span></span>
+          </div>
+          {% for row in seat_rows %}
+            <div class="seat-row">
+              {% if loop.first %}
+                <span class="driver-seat"><span class="driver-wheel" aria-hidden="true"></span><span class="driver-person" aria-hidden="true"><i></i><b></b></span><strong>CHOFER</strong></span><span class="seat-aisle" aria-hidden="true"></span>
+                {% for seat_number in row[2:] %}{{ seat_item(seat_number, can_book, occupied_seats) }}{% endfor %}
+              {% else %}
+                {% for seat_number in row %}
+                  {% if loop.index == 3 %}<span class="seat-aisle" aria-hidden="true"></span>{% endif %}
+                  {{ seat_item(seat_number, can_book, occupied_seats) }}
+                {% endfor %}
+              {% endif %}
+            </div>
+          {% endfor %}
+          <div class="bus-rear"><span>WC</span></div>
+        </div>
+        <div class="seat-legend">
+          <span><i class="seat-key is-available"></i>Disponible</span>
+          {% if can_book %}<span><i class="seat-key is-chosen"></i>Seleccionado</span>{% endif %}
+          <span><i class="seat-key is-unavailable"></i>No disponible</span>
+        </div>
+        {% if can_book %}
+          <button class="button button-primary" type="submit" data-book-button disabled>Generar apartado y folio</button>
+          </form>
+        {% elif available_seats <= 0 %}
+          <div class="empty-state">Esta salida ya no tiene asientos disponibles. Elige otra fecha del calendario.</div>
+        {% else %}
+          <p class="login-prompt"><a class="button button-primary" href="{{ url_for('login', next=url_for('booking', destino=destination_filter, salida=selected_trip.departure_date)) }}">Inicia sesión para elegir asientos</a> <a href="{{ url_for('register', next=url_for('booking', destino=destination_filter, salida=selected_trip.departure_date)) }}">Crear cuenta</a></p>
+        {% endif %}
+      </section>
+    {% elif not month_trips %}
+      <div class="empty-state">No hay salidas para este destino en este mes. Consulta el mes siguiente o elige otro destino.</div>
+    {% endif %}
+  </div>
+  <aside class="booking-aside">
+    <span class="aside-icon">{{ icon("info") }}</span>
+    <h3>Tu apartado, paso a paso</h3>
+    <ul>
+      <li>Elige Oaxaca, Guadalajara o Veracruz y una salida activa del calendario.</li>
+      <li>Selecciona un asiento por cada pasajero. Los asientos ocupados no se pueden elegir.</li>
+      <li>Al confirmar, recibirás un folio con estatus <strong>Pendiente</strong>.</li>
+      <li>El personal actualizará el estatus a <strong>Apartado</strong> o <strong>Pagado</strong>.</li>
+    </ul>
+    <p class="price-note">El sistema no procesa pagos en línea. La tarifa se confirma con el personal antes del viaje.</p>
+  </aside>
+</section>
+{% endblock %}
+{% block head %}
+  <script src="{{ url_for('static', filename='js/booking.js') }}" defer></script>
+{% endblock %}

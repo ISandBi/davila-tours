@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}Mi operación{% endblock %}
+{% block content %}
+<section class="section section-narrow dashboard">
+  <div class="page-heading compact-heading">
+    <span class="eyebrow">PORTAL DE OPERACIÓN</span>
+    <h1>Hola, {{ current_user.full_name }}</h1>
+    <p>Consulta tus salidas asignadas y los datos generales de la operación.</p>
+  </div>
+  <div class="section-heading"><div><h2>Próximas salidas</h2><p class="muted">Las asignaciones son gestionadas por administración.</p></div></div>
+  <div class="driver-trip-list">
+    {% for trip in trips %}
+      <article class="driver-trip-card">
+        <div class="driver-trip-date"><span>{{ trip.departure_date }}</span><strong>{{ trip.destination }}</strong></div>
+        <div class="driver-trip-meta"><span>Regreso</span><strong>{{ trip.return_date }}</strong></div>
+        <div class="driver-trip-meta"><span>Unidad</span><strong>{{ trip.plate or "Pendiente de asignación" }}</strong></div>
+        <div class="driver-trip-meta"><span>Pasajeros reservados</span><strong>{{ trip.reserved }} / {{ trip.capacity }}</strong></div>
+        {% if manifests.get(trip.id) %}
+          <div class="passenger-manifest">
+            <strong>Lista de pasajeros</strong>
+            {% for passenger in manifests[trip.id] %}
+              <span>{{ passenger.passenger_name }} · {{ passenger.passenger_count }} pasajero(s) · {{ reservation_states[passenger.status][0] }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <span class="empty-icon">{{ icon("clock") }}</span>
+        <strong>No tienes salidas asignadas</strong>
+        <p>Cuando administración te asigne una salida, aparecerá en esta sección.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
