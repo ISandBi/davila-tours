@@ -7,6 +7,18 @@ Prototipo web responsivo desarrollado con Flask y SQLite para las reservas de vi
 - Python 3.10 o posterior
 - pip
 
+## Despliegue con Netlify
+
+La aplicación de servidor es Flask/Python. Netlify publica el dominio y ejecuta un proxy Edge, mientras que el backend Flask y sus datos persistentes se alojan en Render.
+
+1. Sube este repositorio a GitHub.
+2. En Render, crea un Blueprint desde el repositorio y usa `render.yaml`. Define `DEMO_PASSWORD` y `QA_ACCESS_TOKEN` como secretos cuando Render los solicite. El Blueprint genera `SECRET_KEY` y configura un disco persistente para SQLite y fotografías.
+3. Espera a que el backend quede disponible y copia su URL HTTPS, por ejemplo `https://davila-tours-backend.onrender.com`.
+4. En Netlify, importa el mismo repositorio. Usa el `netlify.toml` incluido y crea la variable de entorno `BACKEND_URL` con la URL HTTPS del backend (solo el origen, sin rutas). Dale el alcance **Functions** para que la Edge Function pueda leerla y vuelve a desplegar.
+5. Comparte con los usuarios la URL del sitio de Netlify. Las rutas, formularios, sesiones y archivos estáticos se envían al backend Flask.
+
+El servicio Render incluido requiere un plan con disco persistente. El disco limita el servicio a una instancia; esto permite que SQLite y las fotos sigan disponibles después de reinicios, pero no es una configuración de alta disponibilidad. No guardes secretos en el repositorio. Si necesitas escalar a varias instancias, migra SQLite a PostgreSQL y las fotografías a almacenamiento de objetos antes de cambiar el escalado.
+
 ## Puesta en marcha
 
 Desde esta carpeta, abre una terminal y ejecuta:

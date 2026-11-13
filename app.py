@@ -428,7 +428,9 @@ def create_app(test_config=None):
         SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "").lower()
         == "true",
         MAX_CONTENT_LENGTH=6 * 1024 * 1024,
-        PROFILE_PHOTO_FOLDER=str(Path(app.instance_path) / "profile_photos"),
+        PROFILE_PHOTO_FOLDER=os.environ.get(
+            "PROFILE_PHOTO_FOLDER", str(Path(app.instance_path) / "profile_photos")
+        ),
         DATABASE=os.environ.get(
             "DATABASE_PATH", str(Path(app.instance_path) / "davila_tours.sqlite3")
         ),

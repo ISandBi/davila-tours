@@ -5,3 +5,6 @@ __pycache__/
 instance/*.sqlite3
 instance/*.sqlite3-*
 instance/profile_photos/
+
+# Local Netlify folder
+.netlify
