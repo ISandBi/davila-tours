@@ -23,6 +23,7 @@ class DavilaToursTests(unittest.TestCase):
                 "PROFILE_PHOTO_FOLDER": str(Path(self.temp_dir.name) / "profile_photos"),
                 "DEMO_PASSWORD": "TestPassword2026!",
                 "DEMO_ADMIN_EMAIL": "admin@gmail.com",
+                "QA_ACCESS_TOKEN": "test-qa-token",
             }
         )
         self.client = self.app.test_client()
@@ -362,6 +363,76 @@ class DavilaToursTests(unittest.TestCase):
         response = self.client.get("/pruebas")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login?next=/pruebas")
+
+    def test_qa_access_requires_token_and_allows_profile_selection(self):
+        response = self.client.get("/qa")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Token de acceso", response.data)
+
+        response = self.client.post(
+            "/qa",
+            data={
+                "csrf_token": self.csrf_token("/qa"),
+                "action": "select_profile",
+                "role": "administrador",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            "/qa",
+            data={"csrf_token": self.csrf_token("/qa"), "token": "wrong-token"},
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertIn(b"El token no es v\xc3\xa1lido", response.data)
+
+        response = self.client.post(
+            "/qa",
+            data={"csrf_token": self.csrf_token("/qa"), "token": "test-qa-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Selecciona un perfil", response.data)
+
+        response = self.client.post(
+            "/qa",
+            data={
+                "csrf_token": self.csrf_token("/qa"),
+                "action": "select_profile",
+                "role": "cliente",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/pruebas")
+        with self.client.session_transaction() as session:
+            self.assertEqual(session["user"]["role"], "cliente")
+            self.assertTrue(session["qa_access"])
+        self.assertEqual(self.client.get("/cliente").status_code, 200)
+        self.assertEqual(self.client.get("/administrador").status_code, 403)
+
+        profiles = (("chofer", "/chofer"), ("administrador", "/administrador"))
+        for role, endpoint in profiles:
+            response = self.client.post(
+                "/qa",
+                data={
+                    "csrf_token": self.csrf_token("/qa"),
+                    "action": "select_profile",
+                    "role": role,
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(self.client.get(endpoint).status_code, 200)
+
+    def test_qa_access_is_disabled_without_configured_token(self):
+        unconfigured_app = create_app(
+            {
+                "TESTING": True,
+                "SECRET_KEY": "test-secret",
+                "DATABASE": str(Path(self.temp_dir.name) / "unconfigured.sqlite3"),
+                "QA_ACCESS_TOKEN": "",
+            }
+        )
+        response = unconfigured_app.test_client().get("/qa")
+        self.assertEqual(response.status_code, 503)
 
     def test_chofer_dashboard_and_legacy_route_keep_role_protection(self):
         with self.client.session_transaction() as session:

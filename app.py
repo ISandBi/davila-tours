@@ -434,6 +434,7 @@ def create_app(test_config=None):
         ),
         DEMO_PASSWORD=os.environ.get("DEMO_PASSWORD", "Davilatours2026!"),
         DEMO_ADMIN_EMAIL=os.environ.get("DEMO_ADMIN_EMAIL", "admin@gmail.com"),
+        QA_ACCESS_TOKEN=os.environ.get("QA_ACCESS_TOKEN", ""),
         RESERVATION_PRICE_CENTS=int(os.environ.get("RESERVATION_PRICE_CENTS", "0")),
     )
     if test_config:
@@ -572,6 +573,68 @@ def create_app(test_config=None):
     def home():
         trips = get_trip_rows("WHERE t.departure_date >= ?", (date.today().isoformat(),))
         return render_template("home.html", trips=trips[:6])
+
+    @app.route("/qa", methods=["GET", "POST"])
+    def qa_access():
+        qa_token = app.config["QA_ACCESS_TOKEN"]
+        if not qa_token:
+            abort(503, description="El acceso QA no está configurado.")
+
+        if request.method == "POST":
+            if request.form.get("action") == "select_profile":
+                if not session.get("qa_access"):
+                    abort(403)
+                role = request.form.get("role", "")
+                if role not in {"cliente", "chofer", "administrador"}:
+                    abort(400, description="Selecciona un perfil válido.")
+                user = get_db().execute(
+                    """
+                    SELECT id, full_name, email, role FROM users
+                    WHERE role = ? AND active = 1 ORDER BY id LIMIT 1
+                    """,
+                    (role,),
+                ).fetchone()
+                if user is None and role == "cliente":
+                    get_db().execute(
+                        """
+                        INSERT INTO users (full_name, email, password_hash, role)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            "Pasajero QA",
+                            "qa-passenger@davila-tours.invalid",
+                            generate_password_hash(secrets.token_urlsafe(32)),
+                            role,
+                        ),
+                    )
+                    get_db().commit()
+                    user = get_db().execute(
+                        """
+                        SELECT id, full_name, email, role FROM users
+                        WHERE email = ? AND active = 1
+                        """,
+                        ("qa-passenger@davila-tours.invalid",),
+                    ).fetchone()
+                if user is None:
+                    flash("No hay una cuenta activa para ese perfil.", "error")
+                    return render_template("qa_access.html", qa_access=True)
+                session.clear()
+                session["qa_access"] = True
+                session["user"] = dict(user)
+                return redirect(url_for("test_hub"))
+
+            submitted_token = request.form.get("token", "")
+            if len(submitted_token) > 512 or not hmac.compare_digest(
+                submitted_token, qa_token
+            ):
+                flash("El token no es válido.", "error")
+                return render_template("qa_access.html", qa_access=False), 401
+            session.clear()
+            session["qa_access"] = True
+
+        return render_template(
+            "qa_access.html", qa_access=bool(session.get("qa_access"))
+        )
 
     @app.get("/pruebas")
     @authenticated_role("cliente", "chofer", "administrador")

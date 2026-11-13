@@ -25,7 +25,8 @@ Abre `http://127.0.0.1:5000`. La base SQLite se crea automáticamente en `instan
 - Pasajero: `/cliente`
 - Chofer: `/chofer`
 - Administrador: `/administrador`
-- Centro de pruebas QA: `/pruebas` (enlace directo, no aparece en el menú; requiere iniciar sesión y conserva los permisos del perfil)
+- Acceso del equipo de pruebas: `/qa` (requiere el token configurado y permite seleccionar un perfil)
+- Centro de pruebas QA: `/pruebas` (no aparece en el menú; conserva los permisos del perfil)
 
 El registro público crea cuentas de pasajero. Las cuentas operativas iniciales para desarrollo son:
 
@@ -34,9 +35,17 @@ El registro público crea cuentas de pasajero. Las cuentas operativas iniciales 
 | Administrador | `admin@gmail.com` | `Davilatours2026!` |
 | Chofer 1–6 | `chofer1@gmail.com` … `chofer6@gmail.com` | `Davilatours2026!` |
 
-Configura `SECRET_KEY`, `DEMO_PASSWORD` y, si aplica, `DEMO_ADMIN_EMAIL` como variables de entorno antes de desplegar. `RESERVATION_PRICE_CENTS` establece la tarifa por pasajero en centavos de MXN; mientras no se defina, los importes aparecen como “Por confirmar”, ya que los documentos no especifican precios. Cambia las credenciales de demostración y no expongas un servidor de desarrollo en producción.
+Configura `SECRET_KEY`, `DEMO_PASSWORD` y `QA_ACCESS_TOKEN` como variables de entorno antes de desplegar; configura también `DEMO_ADMIN_EMAIL` si aplica. `QA_ACCESS_TOKEN` no tiene un valor predeterminado: sin configurarlo, `/qa` responde que el acceso está deshabilitado. Genera un token aleatorio largo y compártelo solo con el equipo de QA. Por ejemplo, en PowerShell:
 
-El centro de pruebas es un punto de entrada para el equipo de QA; no concede privilegios adicionales ni aparece en el menú. Comparte su URL directamente con el equipo de pruebas. Para revisar cada perfil, inicia sesión con una cuenta de ese perfil. La ruta anterior `/microbusero` redirige al portal `/chofer` y mantiene la misma autorización.
+```powershell
+1.- py -c "import secrets; print(secrets.token_urlsafe(32))"
+2.- $env:QA_ACCESS_TOKEN = "<token-generado>"
+3.- flask --app app run --debug
+```
+
+Al validar el token se puede elegir pasajero, chofer o administrador. El acceso usa cuentas de prueba de esos perfiles y mantiene las protecciones por rol; las acciones realizadas modifican los datos de la aplicación. La primera selección de pasajero crea una cuenta QA si todavía no existe una cuenta de ese perfil. Usa HTTPS en el despliegue y no expongas un servidor de desarrollo en producción. `RESERVATION_PRICE_CENTS` establece la tarifa por pasajero en centavos de MXN; mientras no se defina, los importes aparecen como “Por confirmar”, ya que los documentos no especifican precios.
+
+El centro de pruebas no aparece en el menú. Comparte `/qa` y el token directamente con el equipo de pruebas. La ruta anterior `/microbusero` redirige al portal `/chofer` y mantiene la misma autorización.
 
 ## Reservas y correo
 
