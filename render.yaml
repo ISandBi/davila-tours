@@ -2,19 +2,11 @@ services:
   - type: web
     name: davila-tours-backend
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: waitress-serve --host=0.0.0.0 --port=$PORT app:app
     healthCheckPath: /
-    disk:
-      name: davila-tours-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
-      - key: DATABASE_PATH
-        value: /var/data/davila_tours.sqlite3
-      - key: PROFILE_PHOTO_FOLDER
-        value: /var/data/profile_photos
       - key: SESSION_COOKIE_SECURE
         value: "true"
       - key: DEMO_ADMIN_EMAIL
